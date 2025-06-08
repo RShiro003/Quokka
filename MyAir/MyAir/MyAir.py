@@ -1,19 +1,19 @@
+ï»¿import cv2
+import numpy as np
 
-import cv2
-
-# Å¬·¡½º ¶óº§ (COCO ±âÁØ, class ID 15°¡ 'person')
+# í´ëž˜ìŠ¤ ë¼ë²¨ (VOC ê¸°ì¤€)
 CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat",
            "bottle", "bus", "car", "cat", "chair", "cow", "diningtable",
            "dog", "horse", "motorbike", "person", "pottedplant", "sheep",
            "sofa", "train", "tvmonitor"]
 
-# »çÀü ÈÆ·ÃµÈ MobileNet-SSD ¸ðµ¨ ·Îµå
+# ëª¨ë¸ ë¡œë“œ
 net = cv2.dnn.readNetFromCaffe(
-    'MobileNetSSD_deploy.prototxt.txt',  # ±¸Á¶ Á¤ÀÇ ÆÄÀÏ
-    'MobileNetSSD_deploy.caffemodel'     # °¡ÁßÄ¡ ÆÄÀÏ
+    r"C:\Project\Quokka\MobileNet-SSD-master\deploy.prototxt",
+    r"C:\Project\Quokka\MobileNet-SSD-master\mobilenet_iter_73000.caffemodel"
 )
 
-# À¥Ä· ¿­±â
+# ì›¹ìº  ì—´ê¸°
 cap = cv2.VideoCapture(0)
 
 while True:
@@ -21,39 +21,34 @@ while True:
     if not ret:
         break
 
-    # ÀÔ·Â ÀÌ¹ÌÁö ÀüÃ³¸®
     (h, w) = frame.shape[:2]
     blob = cv2.dnn.blobFromImage(cv2.resize(frame, (300, 300)),
                                  0.007843, (300, 300), 127.5)
+
     net.setInput(blob)
     detections = net.forward()
 
-    # °¨Áö °á°ú ¹Ýº¹
+    # ê°ì§€ ê²°ê³¼ ë°˜ë³µ (ëª¨ë“  í´ëž˜ìŠ¤ í‘œì‹œ)
     for i in range(detections.shape[2]):
         confidence = detections[0, 0, i, 2]
 
-        if confidence > 0.5:  # ½Å·Úµµ ÀÓ°è°ª
+        if confidence > 0.5:
             idx = int(detections[0, 0, i, 1])
+            label = "{}: {:.2f}%".format(CLASSES[idx], confidence * 100)
 
-            if CLASSES[idx] == "person":
-                box = detections[0, 0, i, 3:7] * [w, h, w, h]
-                (startX, startY, endX, endY) = box.astype("int")
+            box = detections[0, 0, i, 3:7] * [w, h, w, h]
+            (startX, startY, endX, endY) = box.astype("int")
 
-                # ¹Ú½º ¹× ¶óº§ Ãâ·Â
-                label = "»ç¶÷: {:.2f}%".format(confidence * 100)
-                cv2.rectangle(frame, (startX, startY), (endX, endY),
-                              (0, 255, 0), 2)
-                y = startY - 15 if startY - 15 > 15 else startY + 15
-                cv2.putText(frame, label, (startX, y),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            cv2.rectangle(frame, (startX, startY), (endX, endY),
+                          (0, 255, 0), 2)
+            y = startY - 15 if startY - 15 > 15 else startY + 15
+            cv2.putText(frame, label, (startX, y),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-    # È­¸é¿¡ Ãâ·Â
-    cv2.imshow("Person Detection", frame)
+    cv2.imshow("Object Detection", frame)
 
-    # Á¾·á Á¶°Ç
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-# Á¾·á
 cap.release()
 cv2.destroyAllWindows()
